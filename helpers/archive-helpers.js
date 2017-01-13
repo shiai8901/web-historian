@@ -1,7 +1,8 @@
 var fs = require('fs');
 var path = require('path');
 var _ = require('underscore');
-
+var fetchHTML = require('../workers/htmlfetcher');
+var querystring = require('querystring');
 /*
  * You will need to reuse the same paths many times over in the course of this sprint.
  * Consider using the `paths` object below to store frequently used file paths. This way,
@@ -43,9 +44,8 @@ exports.isUrlInList = function(url, callback) {
 exports.addUrlToList = function(url, callback) {
   fs.readFile(exports.paths.list, 'utf8', function(err, data) {
     var list = data.trim().split('\n');
-    console.log('addUrlToList', list);
     if (list.indexOf(url) === -1) {
-      fs.writeFile(exports.paths.list, url, function(err) {
+      fs.writeFile(exports.paths.list, url + '\n', function(err) {
         callback(err);
       });
     }
@@ -54,15 +54,19 @@ exports.addUrlToList = function(url, callback) {
 
 exports.isUrlArchived = function(url, callback) {
   fs.readdir(exports.paths.archivedSites, function(err, files) {
-    console.log('isUrlArchived ', exports.paths.archivedSites);
-    if (err) {
-      console.error(err);
-    } else {
-      var boo = files.indexOf(url);
-      callback(err, (boo !== -1));
-    }
+    console.log('files', files);
+    var boo = files.indexOf(url);
+    callback(err, (boo !== -1));
   });
 };
 
-exports.downloadUrls = function() {
+exports.downloadUrls = function(urls) {
+  console.log(Array.isArray(urls));
+  console.log(urls);
+  
+  for (i = 0; i < urls.length; i++) {
+    var url = exports.paths.archivedSites + '/' + urls[i];
+    console.log('url', urls[i]);
+    fs.createWriteStream(url);
+  }
 };

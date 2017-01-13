@@ -4,7 +4,7 @@ var archive = require('../helpers/archive-helpers');
 // var initialize = require('initialize');
 // var httpHelper = require('http-helpers');
 var fs = require('fs');
-
+var urlfunc = require('url');
 
 exports.handleRequest = function (req, res) {
 
@@ -22,17 +22,16 @@ exports.handleRequest = function (req, res) {
   };
   // console.log('you are in handleRequest');
   if (method === 'GET') {
-    // check if the url is in the sites.txt already
-    // if (archive.isUrlInList(url)) {
-    //   // yes, get the webpage stored in archieves/sites
-    //   response.writeHeader(200, {'Content-type': 'html/text'});
-    //   response.end(httpHelper.aserveAssets());
-    // } else {
-      // no, return the loading.html in /public folder
+    var urlPath = urlfunc.parse(req.url).pathname;
+    console.log('urlPath: ', urlPath);
     var body = '';
-    fs.readFile('/Users/aishi/Desktop/Hack Reactor/hrsf53-web-historian/web/public/index.html', function(err, data) {
+    url === '/' ? url = archive.paths.siteAssets + '/index.html' : url = archive.paths.archivedSites + url; 
+    console.log('handleRequest url:', url);
+    fs.readFile(url, function(err, data) {
       if (err) {
         console.error(err);
+        res.writeHead(404, {'Content-Type': 'text/html'});
+        res.end();
       } else {
         res.writeHead(200, {'Content-Type': 'text/html'});
         body += data;
@@ -40,36 +39,24 @@ exports.handleRequest = function (req, res) {
       }
     });
   } else if (method === 'POST') {
-    var list = [];
-    var listbody = '';
     var body = '';
-    req.on('data', function(chunk) {
-      body += chunk;
+    var url = '';
+    req.on('error', function(err) {
+      console.error(err);
     });
-    req.on('end', function() {
-      body = body.toString();
-      console.log('POST: END', body);
-      res.writeHead(200);
-      fs.readFile('/Users/aishi/Desktop/Hack Reactor/hrsf53-web-historian/web/archievs/sites.txt', 'utf8', function(err, data) {
-        if (err) {
-          console.error(err);
-        } else {
-          listbody += data;
-          list = JSON.parse(listbody);   
-          console.log(list);
-          list.push(body);  
-          console.log(list);
-        }
-      });
-      fs.writeFile('/Users/aishi/Desktop/Hack Reactor/hrsf-web-historian/web/archievs/sites.txt', body, function(err, data) {
-        if (err) {
-          console.error(err);
-        } else {
-          console.log('new url has been added in the list');
-        }
-      });
+    req.on('data', function(data) {
+      body += data;
+      url = body.toString().slice(4);
+      console.log('url:', url);
+    });
+    req.on('end', function() {    
+      fs.writeFile(archive.paths.list, url + '\n', function(err) {
+        console.error(err);
+      });    
+      res.writeHead(302, {'Content-Type': 'text/html'});
       res.end();
     });
+    
   } else {
 
     res.end(archive.paths.list);
