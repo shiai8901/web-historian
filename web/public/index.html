@@ -1,46 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" type="text/css" href="styles.css" />
-  <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>-->
+  <!-- <link rel="stylesheet" type="text/css" href="styles.css" /> -->
 </head>
 <body>
   Enter a URL here:
   <form method="POST">
     <input type="input" name="url"></input>
   </form>
-  <!--<script>
-    var app = {
-      server: 'http://127.0.0.1:8080',
-      method: '',
-      url: '',
-
-      init: function() {
-        console.log(this);
-        console.log($('input').value);
-        this.url = $('input').text();
-        console.log(this.url);
-        this.method = $('form').attr('method');
-      },
-      send: function() {
-        $.ajax({
-          url: this.server,
-          type: this.method,
-          data: JSON.stringify(this.url),
-          success: function(data) {
-            console.log('url sent ', this.url);
-          },
-          error: function(error) {
-            console.error('error ', error);
-          }
-        });
-      },
-
-      
-    };
-    app.init();
-    app.send();
-  </script>-->
 </body>
-
 </html>

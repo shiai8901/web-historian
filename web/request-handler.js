@@ -1,65 +1,60 @@
 var path = require('path');
 var archive = require('../helpers/archive-helpers');
-// require more modules/folders here!
-// var initialize = require('initialize');
-// var httpHelper = require('http-helpers');
 var fs = require('fs');
-var urlfunc = require('url');
+var express = require('express');
+var app = express();
+
+// require more modules/folders here!
+var getHtml = function(status, res, path, filename) {
+  	var body = '';
+  	var filePath = path + filename;
+  	fs.readFile(filePath, function(err, data) {
+  	  if (err) {
+  	    console.log('ERROR IN GET page', err);
+  	    res.writeHead(404);
+  	    res.end();
+  	  } else {
+        body += data;
+        res.writeHead(status, {'content-type': 'text/html'});
+  	    res.end(body);
+  	  }
+  	});
+};
 
 exports.handleRequest = function (req, res) {
-
-  var hearders = req.hearders;
-  var method = req.method;
-  var url = req.url;
-  var statusCode = req.statusCode;
-  var body = []; // not sure about this part yet
-
-  var responseBody = {
-    hearders: hearders,
-    method: method,
-    url: url,
-    body: body
-  };
-  // console.log('you are in handleRequest');
-  if (method === 'GET') {
-    var urlPath = urlfunc.parse(req.url).pathname;
-    console.log('urlPath: ', urlPath);
-    var body = '';
-    url === '/' ? url = archive.paths.siteAssets + '/index.html' : url = archive.paths.archivedSites + url; 
-    console.log('handleRequest url:', url);
-    fs.readFile(url, function(err, data) {
-      if (err) {
-        console.error(err);
-        res.writeHead(404, {'Content-Type': 'text/html'});
-        res.end();
-      } else {
-        res.writeHead(200, {'Content-Type': 'text/html'});
-        body += data;
-        res.end(JSON.stringify(body.toString()));
-      }
-    });
-  } else if (method === 'POST') {
-    var body = '';
-    var url = '';
-    req.on('error', function(err) {
-      console.error(err);
-    });
+  // res.end(archive.paths.list);
+  if (req.url === '/' && req.method === 'GET') {
+  	getHtml(200, res, archive.paths.siteAssets, '/index.html');
+  } else if (req.method === 'GET') {
+  	getHtml(200, res, archive.paths.archivedSites, req.url);
+  } else if (req.method === 'POST') {
+  	var url = '';
     req.on('data', function(data) {
-      body += data;
-      url = body.toString().slice(4);
-      console.log('url:', url);
-    });
-    req.on('end', function() {    
-      fs.writeFile(archive.paths.list, url + '\n', function(err) {
-        console.error(err);
-      });    
-      res.writeHead(302, {'Content-Type': 'text/html'});
-      res.end();
-    });
-    
-  } else {
+  	  url += data.toString();
+      url = url.split('=')[1].replace('http://', '');
+  	});
+  	req.on('end', function(){
+  	  archive.isUrlInList(url, function(err, exists) {
+  		if (exists) {
+  		  // check if the url is archived
+  		  archive.isUrlArchived(url, function(err, exists) {
+  		  	if (exists) {
+   		      getHtml(302, res, archive.paths.archivedSites, '/' + url);  		  	  		  		
+  		  	} else {
+  		      getHtml(302, res, archive.paths.siteAssets, '/loading.html'); 		  	
+          }
+  		  });
+  		} else {
+  		  // if the url is not in list, add it to list	
+  		  archive.addUrlToList(url, function() {
+  			// and render the loading page
+  			archive.downloadUrls([url]);
+  		    getHtml(302, res, archive.paths.siteAssets, '/loading.html');
+  		  });
+  		}
+      });
+  	});
 
-    res.end(archive.paths.list);
   }
+}; 
 
-};

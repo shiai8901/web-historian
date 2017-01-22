@@ -1,8 +1,8 @@
 var fs = require('fs');
 var path = require('path');
 var _ = require('underscore');
-var fetchHTML = require('../workers/htmlfetcher');
-var querystring = require('querystring');
+var request = require('request');
+
 /*
  * You will need to reuse the same paths many times over in the course of this sprint.
  * Consider using the `paths` object below to store frequently used file paths. This way,
@@ -27,46 +27,55 @@ exports.initialize = function(pathsObj) {
 // modularize your code. Keep it clean!
 
 exports.readListOfUrls = function(callback) {
-  fs.readFile(exports.paths.list, 'utf8', function(err, data) {
-    var list = data.split('\n');
-    callback(err, list);
-  });
+  fs.readFile(exports.paths.list, 'utf8', function(err, urls) {
+    if (err) {
+  	  console.log('Error reading list of urls, ', err);
+  	  callback(err, null);
+  	} else {
+  	  var list = urls.trimRight().split('\n');
+  	  callback(null, list);
+  	  console.log('list: ', list);
+    }
+  })
 };
 
 exports.isUrlInList = function(url, callback) {
-  fs.readFile(exports.paths.list, 'utf8', function(err, data) {
-    var list = data.split('\n');
-    var boo = list.indexOf(url);
-    callback(err, (boo !== -1));
+  exports.readListOfUrls(function(err, list) {
+  	if (err) {
+  	  callback(err, null);
+  	} else {
+  	  var exists = (list.indexOf(url) !== -1);
+  	  callback(null, exists);
+  	}
   });
 };
 
 exports.addUrlToList = function(url, callback) {
-  fs.readFile(exports.paths.list, 'utf8', function(err, data) {
-    var list = data.trim().split('\n');
-    if (list.indexOf(url) === -1) {
-      fs.writeFile(exports.paths.list, url + '\n', function(err) {
-        callback(err);
-      });
-    }
-  });  
-};
-
-exports.isUrlArchived = function(url, callback) {
-  fs.readdir(exports.paths.archivedSites, function(err, files) {
-    console.log('files', files);
-    var boo = files.indexOf(url);
-    callback(err, (boo !== -1));
+  fs.appendFile(exports.paths.list, url + '\n', function(err) {
+	if (err) {
+	  console.log('ERROR in addUrlToList');
+	  callback(err);
+	} else {
+	  callback(null);
+	}
   });
 };
 
+exports.isUrlArchived = function(url, callback) {
+  fs.readdir(exports.paths.archivedSites, 'utf8', function(err, list) {
+  	if (err) {
+  		console.log('ERROR in isUrlArchived', err);
+  		callback(err, null);
+  	} else {
+  		var exists = (list.indexOf(url) !== -1);
+  		callback(null, exists);
+  	}
+  })
+};
+
 exports.downloadUrls = function(urls) {
-  console.log(Array.isArray(urls));
-  console.log(urls);
-  
-  for (i = 0; i < urls.length; i++) {
-    var url = exports.paths.archivedSites + '/' + urls[i];
-    console.log('url', urls[i]);
-    fs.createWriteStream(url);
+  for (var i = 0; i < urls.length; i++) {
+  	request('http://' + urls[i]).pipe(fs.createWriteStream(exports.paths.archivedSites + '/' + urls[i]));
+  	// don't forget to add '/'
   }
 };
